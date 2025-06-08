@@ -1,0 +1,234 @@
+.xd-video-list-container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  padding: 20px 0;
+  --video-spacing: 20px;
+  --video-ratio: 56.25%; /* 默认16:9 */
+  --progress-color: #ffffff;
+  --border-radius: 8px;
+}
+
+.xd-video-list-wrapper {
+  display: flex;
+  gap: var(--video-spacing);
+  transition: transform 0.3s ease;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  padding: 0 40px; /* 为按钮留出空间 */
+  --videos-per-row: var(--videos-per-row-landscape, 4);
+}
+
+.xd-video-list-wrapper::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.xd-scroll-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease;
+  z-index: 10;
+  opacity: 1;
+  visibility: visible;
+}
+
+.xd-scroll-button:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.xd-scroll-button svg {
+  width: 24px;
+  height: 24px;
+  fill: #fff;
+}
+
+.xd-scroll-left {
+  left: 0;
+}
+
+.xd-scroll-right {
+  right: 0;
+}
+
+.xd-video-item {
+  flex: 0 0 auto;
+  width: calc((100% - (var(--videos-per-row) - 1) * var(--video-spacing)) / var(--videos-per-row));
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.xd-video-item:hover {
+  transform: translateY(-5px);
+}
+
+.xd-video-player {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: var(--video-ratio);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.xd-video-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 20;
+  cursor: pointer;
+}
+
+.xd-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  min-width: 0;
+  background: var(--progress-color);
+  transition: width 0.1s linear;
+  display: block;
+  transform: translateZ(0);
+}
+
+.xd-progress-handle {
+  position: absolute;
+  top: 50%;
+  right: -6px;
+  width: 12px;
+  height: 12px;
+  background: var(--progress-color);
+  border-radius: 50%;
+  transform: translate(0, -50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.xd-video-progress:hover .xd-progress-handle {
+  opacity: 1;
+}
+
+.xd-video-iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.xd-video-player video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.xd-video-title {
+  padding: 12px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  text-align: center;
+  background: #fff;
+}
+
+.xd-mute-button {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease;
+  z-index: 20;
+}
+
+.xd-mute-button:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.xd-mute-button svg {
+  width: 20px;
+  height: 20px;
+  fill: #fff;
+}
+
+/* 隐藏视频控制栏 */
+.xd-video-iframe::-webkit-media-controls {
+  display: none !important;
+}
+
+.xd-video-iframe::-webkit-media-controls-enclosure {
+  display: none !important;
+}
+
+/* 横屏模式 */
+@media screen and (min-width: 769px) {
+  .xd-video-list-wrapper {
+    --videos-per-row: var(--videos-per-row-landscape, 4);
+  }
+}
+
+/* 竖屏模式 */
+@media screen and (max-width: 768px) {
+  .xd-video-list-wrapper {
+    --videos-per-row: var(--videos-per-row-portrait, 2);
+  }
+  
+  .xd-scroll-button {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .xd-scroll-button svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* 小屏幕 */
+@media screen and (max-width: 480px) {
+  .xd-video-list-wrapper {
+    --videos-per-row: 1;
+  }
+  
+  .xd-scroll-button {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .xd-scroll-button svg {
+    width: 16px;
+    height: 16px;
+  }
+} 

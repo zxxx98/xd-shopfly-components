@@ -1,0 +1,226 @@
+{% schema %}
+{
+  "name": "XD视频列表",
+  "settings": [
+    {
+      "type": "range",
+      "id": "slide_speed",
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "unit": "s",
+      "label": "滑动速度",
+      "default": 5
+    },
+    {
+      "type": "range",
+      "id": "video_spacing",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "视频间距",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "label": "视频圆角",
+      "default": 8
+    },
+    {
+      "type": "color",
+      "id": "progress_color",
+      "label": "进度条颜色",
+      "default": "#ffffff"
+    },
+    {
+      "type": "select",
+      "id": "video_ratio",
+      "label": "视频比例",
+      "options": [
+        {
+          "value": "16:9",
+          "label": "16:9"
+        },
+        {
+          "value": "4:3",
+          "label": "4:3"
+        },
+        {
+          "value": "1:1",
+          "label": "1:1"
+        },
+        {
+          "value": "9:16",
+          "label": "9:16"
+        }
+      ],
+      "default": "16:9"
+    },
+    {
+      "type": "range",
+      "id": "videos_per_row_landscape",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "label": "横屏模式每行显示视频数量",
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "videos_per_row_portrait",
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "label": "竖屏模式每行显示视频数量",
+      "default": 2
+    }
+  ],
+  "blocks": [
+    {
+      "type": "video",
+      "name": "视频",
+      "settings": [
+        {
+          "type": "select",
+          "id": "video_source",
+          "label": "视频来源",
+          "options": [
+            {
+              "value": "shopify",
+              "label": "Shopify媒体库"
+            },
+            {
+              "value": "youtube",
+              "label": "YouTube"
+            },
+            {
+              "value": "vimeo",
+              "label": "Vimeo"
+            }
+          ],
+          "default": "shopify"
+        },
+        {
+          "type": "video",
+          "id": "shopify_video",
+          "label": "Shopify视频",
+          "info": "从媒体库选择视频"
+        },
+        {
+          "type": "video_url",
+          "id": "external_video_url",
+          "label": "外部视频链接",
+          "accept": ["youtube", "vimeo"],
+          "info": "输入YouTube或Vimeo视频链接"
+        },
+        {
+          "type": "image_picker",
+          "id": "cover_image",
+          "label": "封面图片"
+        },
+        {
+          "type": "checkbox",
+          "id": "autoplay",
+          "label": "自动播放",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "视频列表",
+      "blocks": [
+        {
+          "type": "video"
+        },
+        {
+          "type": "video"
+        },
+        {
+          "type": "video"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+<div class="xd-video-list-container" 
+     data-slide-speed="{{ section.settings.slide_speed }}"
+     data-video-spacing="{{ section.settings.video_spacing }}"
+     data-border-radius="{{ section.settings.border_radius }}"
+     data-progress-color="{{ section.settings.progress_color }}"
+     data-video-ratio="{{ section.settings.video_ratio }}"
+     data-videos-per-row-landscape="{{ section.settings.videos_per_row_landscape }}"
+     data-videos-per-row-portrait="{{ section.settings.videos_per_row_portrait }}">
+  <button class="xd-scroll-button xd-scroll-left" aria-label="向左滚动">
+    <svg viewBox="0 0 24 24">
+      <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+    </svg>
+  </button>
+  <div class="xd-video-list-wrapper">
+    {% for block in section.blocks %}
+      {% if block.type == 'video' %}
+        <div class="xd-video-item" {{ block.shopify_attributes }}
+             data-autoplay="{{ block.settings.autoplay }}">
+          <div class="xd-video-player">
+            {% if block.settings.video_source == 'shopify' and block.settings.shopify_video != blank %}
+              {{ block.settings.shopify_video | video_tag: 
+                controls: false,
+                autoplay: block.settings.autoplay,
+                loop: true,
+                muted: true,
+                class: 'xd-video-iframe'
+              }}
+            {% elsif block.settings.video_source == 'youtube' and block.settings.external_video_url != blank %}
+              {% if block.settings.external_video_url contains 'youtube.com' or block.settings.external_video_url contains 'youtu.be' %}
+                <iframe
+                  src="{{ block.settings.external_video_url | replace: 'watch?v=', 'embed/' }}?controls=0&autoplay={{ block.settings.autoplay | default: 0 }}&mute=1"
+                  frameborder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                  class="xd-video-iframe"
+                ></iframe>
+              {% endif %}
+            {% elsif block.settings.video_source == 'vimeo' and block.settings.external_video_url != blank %}
+              {% if block.settings.external_video_url contains 'vimeo.com' %}
+                <iframe
+                  src="{{ block.settings.external_video_url | replace: 'vimeo.com', 'player.vimeo.com/video' }}?controls=0&autoplay={{ block.settings.autoplay | default: 0 }}&muted=1"
+                  frameborder="0"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowfullscreen
+                  class="xd-video-iframe"
+                ></iframe>
+              {% endif %}
+            {% endif %}
+            <div class="xd-video-progress">
+              <div class="xd-progress-bar" style="width: 0%">
+                <div class="xd-progress-handle"></div>
+              </div>
+            </div>
+            <button class="xd-mute-button" aria-label="静音/取消静音">
+              <svg class="mute-icon" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+              </svg>
+              <svg class="unmute-icon" viewBox="0 0 24 24" style="display: none;">
+                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <button class="xd-scroll-button xd-scroll-right" aria-label="向右滚动">
+    <svg viewBox="0 0 24 24">
+      <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+    </svg>
+  </button>
+</div> 
