@@ -1,0 +1,408 @@
+{%- style -%}
+.bottom-add-cart {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #ffffff;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 99;
+  transform: translateY(100%);
+  transition: transform 0.3s ease-in-out;
+}
+
+.bottom-add-cart.visible {
+  transform: translateY(0);
+}
+
+.product-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 1;
+}
+
+.product-thumbnail {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.product-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.product-price {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e53e3e;
+  margin: 5px 0;
+}
+
+.variant-selector {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+.variant-selector select {
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.quantity-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 20px;
+}
+
+.quantity-btn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.quantity-input {
+  width: 40px;
+  height: 30px;
+  text-align: center;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.add-to-cart-btn {
+  background: {{ section.settings.button_color }};
+  color: {{ section.settings.button_text_color }};
+  border: none;
+  padding: 12px 25px;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+{% if section.settings.enable_bounce %}
+.add-to-cart-btn {
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+{% endif %}
+{%- endstyle -%}
+
+<div class="bottom-add-cart">
+  <div class="product-info">
+    <img src="{{ product.featured_image | img_url: '100x' }}" alt="{{ product.title }}" class="product-thumbnail">
+    <div>
+      <h3 class="product-title">{{ product.title }}</h3>
+      <div class="product-price">{{ product.price | money }}</div>
+    </div>
+  </div>
+  
+  <div class="variant-selector">
+    {% for option in product.options_with_values %}
+      <div class="variant-option">
+        <label for="{{ option.name | handleize }}">{{ option.name }}</label>
+        <select id="{{ option.name | handleize }}" class="variant-select">
+          {% for value in option.values %}
+            <option value="{{ value | escape }}">{{ value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="quantity-selector">
+    <button type="button" class="quantity-btn minus">-</button>
+    <input type="number" class="quantity-input" value="1" min="1" max="99">
+    <button type="button" class="quantity-btn plus">+</button>
+  </div>
+
+  <button type="button" class="add-to-cart-btn" data-product-id="{{ product.id }}">
+    加入购物车
+  </button>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const bottomAddCart = document.querySelector('.bottom-add-cart');
+  // 尝试多种可能的选择器来获取默认的添加到购物车按钮
+  const defaultAddToCartBtn = document.querySelector('button[name="add"], .product-form__submit, .add-to-cart, [data-add-to-cart]');
+  
+  if (!defaultAddToCartBtn) {
+    console.error('默认添加到购物车按钮未找到，请检查选择器');
+    return;
+  }
+
+  if (!bottomAddCart) {
+    console.error('底部购物车栏未找到');
+    return;
+  }
+
+  function checkVisibility() {
+    const defaultBtnRect = defaultAddToCartBtn.getBoundingClientRect();
+    const windowHeight = window.innerHeight;
+    
+    // 当默认按钮的顶部位置超出视窗底部时显示底部购物车栏
+    if (defaultBtnRect.top < 0) {
+      bottomAddCart.classList.add('visible');
+    } else {
+      bottomAddCart.classList.remove('visible');
+    }
+  }
+
+  // 初始检查
+  checkVisibility();
+
+  // 监听滚动事件，添加节流以提高性能
+  let ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      window.requestAnimationFrame(function() {
+        checkVisibility();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  // 监听窗口大小改变事件
+  window.addEventListener('resize', function() {
+    if (!ticking) {
+      window.requestAnimationFrame(function() {
+        checkVisibility();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  // 获取产品变体数据
+  const productData = {{ product | json }};
+  window.productVariants = productData.variants;
+
+  // 获取所有需要的元素
+  const addToCartBtn = document.querySelector('.add-to-cart-btn');
+  const variantSelects = document.querySelectorAll('.variant-select');
+  const quantityInput = document.querySelector('.quantity-input');
+  const minusBtn = document.querySelector('.quantity-btn.minus');
+  const plusBtn = document.querySelector('.quantity-btn.plus');
+  
+  if (!addToCartBtn || !quantityInput || !minusBtn || !plusBtn) {
+    console.error('Some elements are missing');
+    return;
+  }
+
+  // 数量选择器功能
+  minusBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    const currentValue = parseInt(quantityInput.value);
+    if (currentValue > 1) {
+      quantityInput.value = currentValue - 1;
+    }
+  });
+
+  plusBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    const currentValue = parseInt(quantityInput.value);
+    if (currentValue < 99) {
+      quantityInput.value = currentValue + 1;
+    }
+  });
+
+  quantityInput.addEventListener('change', function(e) {
+    let value = parseInt(this.value);
+    if (isNaN(value) || value < 1) {
+      value = 1;
+    } else if (value > 99) {
+      value = 99;
+    }
+    this.value = value;
+  });
+  
+  // 添加到购物车功能
+  addToCartBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    const productId = this.dataset.productId;
+    const quantity = parseInt(quantityInput.value);
+    
+    // 获取选中的变体
+    const selectedOptions = Array.from(variantSelects).map(select => select.value);
+    
+    // 从产品数据中查找匹配的变体
+    const variant = window.productVariants.find(variant => {
+      return variant.options.every((option, index) => option === selectedOptions[index]);
+    });
+
+    if (!variant) {
+      // 显示错误提示
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #f44336;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 4px;
+        z-index: 1001;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      `;
+      notification.textContent = '请选择有效的商品选项';
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+      return;
+    }
+    
+    // 构建添加到购物车的请求数据
+    const formData = {
+      items: [{
+        id: variant.id,
+        quantity: quantity
+      }]
+    };
+
+    // 显示加载状态
+    this.disabled = true;
+    this.textContent = '添加中...';
+
+    // 发送添加到购物车的请求
+    fetch('/cart/add.js', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+      // 添加成功后的处理
+      console.log('Added to cart:', data);
+      // 获取最新的购物车数据
+      return fetch('/cart.js')
+        .then(response => response.json())
+        .then(cartData => {
+          // 尝试多种方式更新购物车
+          const cartDrawer = document.querySelector('cart-drawer');
+          if (cartDrawer) {
+                // 打开购物车抽屉
+            cartDrawer.open();
+            // 显示成功提示
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 15px 25px;
+                border-radius: 4px;
+                z-index: 1001;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            `;
+            notification.textContent = '商品已成功添加到购物车！';
+            document.body.appendChild(notification);
+          
+          // 3秒后移除提示
+          setTimeout(() => {
+            notification.remove();
+            // 恢复按钮状态
+            this.disabled = false;
+            this.textContent = '加入购物车';
+          }, 1000);
+          } else {
+            // 如果找不到购物车抽屉组件，则跳转到购物车页面
+            window.location.href = '/cart';
+          }
+        });
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      // 显示错误提示
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #f44336;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 4px;
+        z-index: 1001;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      `;
+      notification.textContent = '添加失败，请重试';
+      document.body.appendChild(notification);
+      
+      // 3秒后移除提示
+      setTimeout(() => {
+        notification.remove();
+        // 恢复按钮状态
+        this.disabled = false;
+        this.textContent = '加入购物车';
+      }, 3000);
+    });
+  });
+});
+</script>
+
+{% schema %}
+{
+  "name": "底部购物车栏",
+  "tag": "section",
+  "class": "section",
+  "settings": [
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "按钮颜色",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "按钮文字颜色",
+      "default": "#ffffff"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_bounce",
+      "label": "启用按钮跳动动画",
+      "default": true
+    }
+  ],
+  "presets": [
+    {
+      "name": "底部购物车栏",
+      "category": "商品"
+    }
+  ]
+}
+{% endschema %} 
